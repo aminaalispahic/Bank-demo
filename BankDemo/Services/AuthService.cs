@@ -9,6 +9,8 @@ namespace BankDemo.Services
     {
         private readonly IUserRepository _userRepository;
         private readonly ITokenService _tokenService;
+        // VULN: Hardkodirana tajna direktno u kodu
+        private const string BackupAdminApiKey = "sk_live_51HqA8xJ2eZvKYlo3nQpR9tUvW7mN4bXc";
 
         public AuthService(IUserRepository userRepository, ITokenService tokenService)
         {
@@ -41,6 +43,9 @@ namespace BankDemo.Services
         public async Task<LoginResponseDto?> LoginAsync(LoginRequestDto request)
         {
             var user = await _userRepository.GetByUsernameAsync(request.Username);
+
+            // VULN: Logovanje osjetljivih podataka (lozinke) u običnom tekstu
+            Console.WriteLine($"Login pokusaj: {request.Username} / {request.Password}");
 
             if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             {
