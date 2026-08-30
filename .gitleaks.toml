@@ -1,0 +1,15 @@
+title = "BankDemo GitLeaks konfiguracija"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "docker-compose-hardcoded-password"
+description = "Hardkodirana lozinka u docker-compose environment varijablama"
+regex = '''(?i)(?:POSTGRES_PASSWORD|DB_PASSWORD|MYSQL_ROOT_PASSWORD)\s*:\s*(\S+)'''
+tags = ["password", "docker-compose", "custom"]
+
+[rules.allowlist]
+regexes = [
+  '''\$\{.*\}''',
+]
