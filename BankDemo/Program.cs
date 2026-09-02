@@ -9,7 +9,9 @@ using System.Text;
 using BankDemo.Models;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
+using Serilog;
 var builder = WebApplication.CreateBuilder(args);
+builder.Host.UseSerilog();
 
 // ===== FAZA 1: registruj servise (spisak za kupovinu) =====
 
@@ -78,6 +80,14 @@ builder.Services.AddRateLimiter(options =>
         opt.QueueLimit = 0;
     });
 });
+
+
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .WriteTo.Console()
+    .WriteTo.File("Logs/bankdemo-.log", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+
 
 var app = builder.Build();
 // ^ OVDJE se "spisak za kupovinu" pretvara u stvarnu, funkcionalnu aplikaciju.

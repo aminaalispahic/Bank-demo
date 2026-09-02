@@ -8,11 +8,13 @@ namespace BankDemo.Services
     {
         private readonly IAccountRepository _accountRepository;
         private readonly ITransactionRepository _transactionRepository;
+        private readonly ILogger<AccountService> _logger;
 
-        public AccountService(IAccountRepository accountRepository, ITransactionRepository transactionRepository)
+        public AccountService(IAccountRepository accountRepository, ITransactionRepository transactionRepository, ILogger<AccountService> logger)
         {
             _accountRepository = accountRepository;
             _transactionRepository = transactionRepository;
+            _logger = logger;
         }
 
         public async Task<List<AccountDto>> GetUserAccountsAsync(int userId)
@@ -33,6 +35,7 @@ namespace BankDemo.Services
 
             if (fromAccount == null || fromAccount.UserId != userId)
             {
+                _logger.LogWarning("Pokušaj transfera sa računa koji ne pripada korisniku. UserId: {UserId}, PokušanRačun: {AccountId}", userId, fromAccountId);
                 return new TransferResult { Success = false, ErrorMessage = "Nemate pristup ovom računu." };
             }
 
@@ -64,6 +67,9 @@ namespace BankDemo.Services
             });
 
             await _accountRepository.SaveChangesAsync();
+
+            _logger.LogInformation("Transfer izvršen: {Amount} sa računa {FromAccount} na račun {ToAccount}",
+    request.Amount, fromAccount.AccountNumber, toAccount.AccountNumber);
 
             return new TransferResult { Success = true };
         }
