@@ -21,7 +21,7 @@ COPY --from=build /app/publish .
 RUN chown -R appuser:appgroup /app
 
 # Promijeni aktivnog korisnika sa root na appuser
-USER 1001
+USER 1001docker 
 
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "BankDemo.dll"]
