@@ -132,6 +132,7 @@ jobs:
         with:
           target: 'http://localhost:8080'
           fail_action: false
+          allow_issue_writing: false
 
       - name: Pokreni SQLMap na search endpoint-u
         run: |
