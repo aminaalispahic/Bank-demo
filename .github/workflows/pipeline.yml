@@ -202,6 +202,18 @@ jobs:
             -F "active=true" \
             -F "verified=false" \
             -F "minimum_severity=Info"
+      - name: Generiši SBOM (CycloneDX format)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'bankdemo-app:${{ github.sha }}'
+          format: 'cyclonedx'
+          output: 'sbom.cyclonedx.json'
+
+      - name: Sačuvaj SBOM kao artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-report
+          path: sbom.cyclonedx.json
 
   dast-zap-sqlmap:
     name: DAST - OWASP ZAP + SQLMap
