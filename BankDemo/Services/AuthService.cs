@@ -9,13 +9,13 @@ namespace BankDemo.Services
     {
         private readonly IUserRepository _userRepository;
         private readonly ITokenService _tokenService;
-        private readonly ILogger<AuthService> _logger;
+        // VULN: Hardkodirana tajna direktno u kodu
+        private const string BackupAdminApiKey = "sk_live_51HqA8xJ2eZvKYlo3nQpR9tUvW7mN4bXc";
 
-        public AuthService(IUserRepository userRepository, ITokenService tokenService, ILogger<AuthService> logger)
+        public AuthService(IUserRepository userRepository, ITokenService tokenService)
         {
             _userRepository = userRepository;
             _tokenService = tokenService;
-            _logger = logger;
         }
 
         public async Task<RegisterResult> RegisterAsync(RegisterRequestDto request)
@@ -44,14 +44,13 @@ namespace BankDemo.Services
         {
             var user = await _userRepository.GetByUsernameAsync(request.Username);
 
+            // VULN: Logovanje osjetljivih podataka (lozinke) u običnom tekstu
+            Console.WriteLine($"Login pokusaj: {request.Username} / {request.Password}");
+
             if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             {
-                _logger.LogWarning("Neuspješan pokušaj logina za korisničko ime {Username}", request.Username);
                 return null;
             }
-
-            _logger.LogInformation("Uspješan login korisnika {Username} (Id: {UserId}, Rola: {Role})",
-                user.Username, user.Id, user.Role);
 
             var token = _tokenService.GenerateToken(user!);
 
@@ -80,9 +79,6 @@ namespace BankDemo.Services
 
             await _userRepository.AddAsync(user);
             await _userRepository.SaveChangesAsync();
-
-            _logger.LogInformation("Novi staff nalog kreiran: {Username}, Rola: {Role}", user.Username, user.Role);
-
 
             return new RegisterResult { Success = true };
         }
