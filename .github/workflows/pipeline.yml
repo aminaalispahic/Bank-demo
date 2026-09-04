@@ -147,7 +147,7 @@ jobs:
       - name: Pokreni SQLMap na search endpoint-u
         run: |
           docker run --rm --network host \
-            sqlmapproject/sqlmap \
+            secsi/sqlmap \
             -u "http://localhost:8080/api/accounts/search?accountNumber=test" \
             --batch --level=2 --risk=2 \
             --output-dir=/tmp/sqlmap-results
