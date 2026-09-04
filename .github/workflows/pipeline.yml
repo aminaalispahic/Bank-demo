@@ -95,3 +95,49 @@ jobs:
         with:
           name: trivy-report
           path: trivy-results.sarif
+  dast-zap-sqlmap:
+    name: DAST - OWASP ZAP + SQLMap
+    runs-on: ubuntu-latest
+    needs: docker-build-trivy
+    steps:
+      - name: Preuzmi kod
+        uses: actions/checkout@v4
+
+      - name: Napravi .env fajl za pipeline
+        run: |
+          echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
+          echo "JWT_KEY=${{ secrets.JWT_KEY }}" >> .env
+          echo "ADMIN_USERNAME=${{ secrets.ADMIN_USERNAME }}" >> .env
+          echo "ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}" >> .env
+
+      - name: Pokreni aplikaciju i bazu
+        run: docker compose up -d --build
+
+      - name: Sačekaj da aplikacija bude spremna
+        run: |
+          for i in {1..30}; do
+            if curl -sf http://localhost:8080/swagger/index.html; then
+              echo "Aplikacija je spremna."
+              break
+            fi
+            echo "Čekam aplikaciju... ($i/30)"
+            sleep 2
+          done
+
+      - name: Pokreni OWASP ZAP baseline sken
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: 'http://localhost:8080'
+          fail_action: false
+
+      - name: Pokreni SQLMap na search endpoint-u
+        run: |
+          docker run --rm --network host \
+            sqlmapproject/sqlmap \
+            -u "http://localhost:8080/api/accounts/search?accountNumber=test" \
+            --batch --level=2 --risk=2 \
+            --output-dir=/tmp/sqlmap-results
+
+      - name: Zaustavi aplikaciju
+        if: always()
+        run: docker compose down
