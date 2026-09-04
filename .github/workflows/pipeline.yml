@@ -170,6 +170,7 @@ jobs:
     permissions:
       contents: read
       id-token: write   
+      packages: write
     steps:
       - name: Preuzmi kod
         uses: actions/checkout@v4
