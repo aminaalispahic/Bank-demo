@@ -103,6 +103,7 @@ jobs:
             -F "scan_type=SARIF" \
             -F "file=@trivy-results.sarif" \
             -F "product_name=BankDemo" \
+            -F "product_type_name=Diplomski rad" \
             -F "engagement_name=CI/CD Pipeline Run #1" \
             -F "test_title=Trivy Container Scan" \
             -F "auto_create_context=true" \
