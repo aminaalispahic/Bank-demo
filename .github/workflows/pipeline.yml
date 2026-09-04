@@ -95,6 +95,20 @@ jobs:
         with:
           name: trivy-report
           path: trivy-results.sarif
+
+      - name: Pošalji Trivy izvještaj u DefectDojo
+        run: |
+          curl -X POST "${{ secrets.DEFECTDOJO_URL }}/api/v2/reimport-scan/" \
+            -H "Authorization: Token ${{ secrets.DEFECTDOJO_API_KEY }}" \
+            -F "scan_type=SARIF" \
+            -F "file=@trivy-results.sarif" \
+            -F "product_name=BankDemo" \
+            -F "engagement_name=CI/CD Pipeline Run #1" \
+            -F "test_title=Trivy Container Scan" \
+            -F "auto_create_context=true" \
+            -F "active=true" \
+            -F "verified=false" \
+            -F "minimum_severity=Info"
   dast-zap-sqlmap:
     name: DAST - OWASP ZAP + SQLMap
     runs-on: ubuntu-latest
