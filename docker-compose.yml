@@ -5,6 +5,12 @@ services:
       POSTGRES_USER: bankuser
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: bankdemo
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bankuser -d bankdemo"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
     ports:
       - "5432:5432"
     volumes:
@@ -14,6 +20,9 @@ services:
     build:
       context: ./BankDemo
       dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
     ports:
       - "8080:8080"
     environment:
@@ -24,8 +33,6 @@ services:
       Jwt__Audience: BankDemoUsers
       AdminSeed__Username: ${ADMIN_USERNAME}
       AdminSeed__Password: ${ADMIN_PASSWORD}
-    depends_on:
-      - db
 
 volumes:
   pgdata:
