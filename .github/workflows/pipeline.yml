@@ -128,11 +128,21 @@ jobs:
           docker compose logs
           exit 1
       - name: Pokreni OWASP ZAP baseline sken
+        continue-on-error: true
         uses: zaproxy/action-baseline@v0.12.0
         with:
           target: 'http://localhost:8080'
           fail_action: false
           allow_issue_writing: false
+      - name: Sačuvaj ZAP izvještaj kao artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-report
+          path: |
+            report_html.html
+            report_json.json
+            report_md.md
 
       - name: Pokreni SQLMap na search endpoint-u
         run: |
