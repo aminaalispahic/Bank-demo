@@ -189,7 +189,24 @@ Analizom utvrđeno da je riječ o **lažno pozitivnom nalazu** uzrokovanom neta�
 
 Isti obrazac — CPE mapiranje pogrešno povezalo .NET `System.CodeDom` paket sa istorijskim **Visual Basic 6.0 / Visual FoxPro** ranjivostima (2001–2012), zbog dijeljenog pojma "CodeDom" u opisu i nazivu proizvoda.
 
-**Zaključak za poglavlje 6:** oba nalaza predstavljaju dokumentovano, poznato ograničenje CPE-baziranih SCA alata — netačno mapiranje paketa na nepovezan softver sličnog imena/verzije. Ovo je vrijedniji nalaz za kritičku analizu nego stvarna ranjivost, jer direktno demonstrira da automatizovani SCA rezultati **zahtijevaju stručnu verifikaciju** prije donošenja zaključaka, i da se broj/severity CVE nalaza ne smije uzimati "zdravo za gotovo" bez provjere relevantnosti. Preporučena mjera: kreiranje suppression fajla (ugrađena funkcija alata) kojim se ova dva netačna CPE mapiranja eksplicitno isključuju iz budućih skenova — standardna praksa poznata kao "tuning" u realnim DevSecOps timovima.
+**Zaključak za poglavlje 6:** oba nalaza predstavljaju dokumentovano, poznato ograničenje CPE-baziranih SCA alata — netačno mapiranje paketa na nepovezan softver sličnog imena/verzije. Ovo je vrijedniji nalaz za kritičku analizu nego stvarna ranjivost, jer direktno demonstrira da automatizovani SCA rezultati **zahtijevaju stručnu verifikaciju** prije donošenja zaključaka, i da se broj/severity CVE nalaza ne smije uzimati "zdravo za gotovo" bez provjere relevantnosti.
+
+### Suppression fajl — aktivno upravljanje lažno pozitivnim nalazima
+
+Kreiran `suppression.xml` (OWASP Dependency-Check suppression schema 1.4) sa eksplicitnim obrazloženjem za oba lažno pozitivna CPE mapiranja, i ponovo pokrenut sken sa `--suppression` flagom.
+
+**Rezultat nakon primjene suppression fajla:**
+
+| Metrika | Prije | Poslije |
+|---|---|---|
+| Vulnerable Dependencies | 2 | 0 |
+| Vulnerabilities Suppressed | 0 | 46 |
+
+Izvještaj eksplicitno prikazuje potisnute identifikatore (`cpe:2.3:a:postgresql:postgresql:10.0.3:*:*:*:*:*:*:*`, `cpe:2.3:a:www-sql_project:www-sql:10.0.3:*:*:*:*:*:*:*`) zajedno sa ličnim obrazloženjem unesenim u `suppression.xml` ("Lazno pozitivan nalaz: CPE mapiranje pogrešno povezuje ovaj .NET paket sa samim PostgreSQL serverom...") — čineći odluku o suppression-u transparentnom i dokumentovanom, ne prostim "sakrivanjem" nalaza.
+
+**Napomena:** pri prvom pokušaju, terminal je prikazao upozorenje ("Warn initializing the suppression analyzer... SuppressionParseException") koje je izgledalo kao fatalna greška, ali suppression fajl je ipak uspješno primijenjen (potvrđeno vidljivim napomenama u finalnom izvještaju) — upozorenje nije spriječilo funkcionalnost, samo je signaliziralo manji problem pri inicijalnom parsiranju koji nije uticao na konačni rezultat.
+
+**Ovo je standardna DevSecOps praksa poznata kao "tuning" alata** — svjesno, dokumentovano upravljanje lažno pozitivnim nalazima, umjesto njihovog ignorisanja ili slijepog prihvatanja. Demonstrira zreliji pristup SCA analizi: prvo kritička verifikacija nalaza, zatim eksplicitna, obrazložena odluka zabilježena u samoj konfiguraciji alata.
 
 ### Problemi na koje sam naišla i kako sam ih riješila
 
