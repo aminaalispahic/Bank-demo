@@ -33,6 +33,7 @@ services:
       Jwt__Audience: BankDemoUsers
       AdminSeed__Username: ${ADMIN_USERNAME}
       AdminSeed__Password: ${ADMIN_PASSWORD}
+      DEMO: ${DEMO}
 
 volumes:
   pgdata:
