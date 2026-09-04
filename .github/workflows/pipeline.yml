@@ -16,10 +16,36 @@ jobs:
           fetch-depth: 0
 
       - name: Pokreni GitLeaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_CONFIG: .gitleaks.toml
+        continue-on-error: true
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/repo" \
+            zricethezav/gitleaks:latest detect \
+            --source /repo \
+            --config /repo/.gitleaks.toml \
+            --report-format sarif \
+            --report-path /repo/gitleaks-results.sarif
+
+      - name: Sačuvaj GitLeaks izvještaj
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: gitleaks-results.sarif
+
+      - name: Pošalji GitLeaks izvještaj u DefectDojo
+        run: |
+          curl -X POST "${{ secrets.DEFECTDOJO_URL }}/api/v2/reimport-scan/" \
+            -H "Authorization: Token ${{ secrets.DEFECTDOJO_API_KEY }}" \
+            -F "scan_type=SARIF" \
+            -F "file=@gitleaks-results.sarif" \
+            -F "product_name=BankDemo" \
+            -F "product_type_name=Diplomski rad" \
+            -F "engagement_name=CI/CD Pipeline Run #1" \
+            -F "test_title=GitLeaks Secrets Scan" \
+            -F "auto_create_context=true" \
+            -F "active=true" \
+            -F "verified=false" \
+            -F "minimum_severity=Info"
+
   sast-semgrep:
     name: SAST - Semgrep
     runs-on: ubuntu-latest
@@ -29,9 +55,36 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Pokreni Semgrep
-        uses: semgrep/semgrep-action@v1
+        continue-on-error: true
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/src" \
+            semgrep/semgrep semgrep scan \
+            --config auto \
+            --sarif \
+            --output=/src/semgrep-results.sarif \
+            /src
+
+      - name: Sačuvaj Semgrep izvještaj
+        uses: actions/upload-artifact@v4
         with:
-          config: auto
+          name: semgrep-report
+          path: semgrep-results.sarif
+
+      - name: Pošalji Semgrep izvještaj u DefectDojo
+        run: |
+          curl -X POST "${{ secrets.DEFECTDOJO_URL }}/api/v2/reimport-scan/" \
+            -H "Authorization: Token ${{ secrets.DEFECTDOJO_API_KEY }}" \
+            -F "scan_type=SARIF" \
+            -F "file=@semgrep-results.sarif" \
+            -F "product_name=BankDemo" \
+            -F "product_type_name=Diplomski rad" \
+            -F "engagement_name=CI/CD Pipeline Run #1" \
+            -F "test_title=Semgrep SAST Scan" \
+            -F "auto_create_context=true" \
+            -F "active=true" \
+            -F "verified=false" \
+            -F "minimum_severity=Info"
+
   sast-security-code-scan:
     name: SAST - Security Code Scan
     runs-on: ubuntu-latest
@@ -48,7 +101,29 @@ jobs:
       - name: Build sa Security Code Scan analizom
         run: |
           cd BankDemo
-          dotnet build --no-incremental
+          dotnet build --no-incremental /p:ErrorLog=../scs-results.sarif,version=2.1
+
+      - name: Sačuvaj Security Code Scan izvještaj
+        uses: actions/upload-artifact@v4
+        with:
+          name: scs-report
+          path: scs-results.sarif
+
+      - name: Pošalji Security Code Scan izvještaj u DefectDojo
+        run: |
+          curl -X POST "${{ secrets.DEFECTDOJO_URL }}/api/v2/reimport-scan/" \
+            -H "Authorization: Token ${{ secrets.DEFECTDOJO_API_KEY }}" \
+            -F "scan_type=SARIF" \
+            -F "file=@scs-results.sarif" \
+            -F "product_name=BankDemo" \
+            -F "product_type_name=Diplomski rad" \
+            -F "engagement_name=CI/CD Pipeline Run #1" \
+            -F "test_title=Security Code Scan SAST" \
+            -F "auto_create_context=true" \
+            -F "active=true" \
+            -F "verified=false" \
+            -F "minimum_severity=Info"
+
   sca-dependency-check:
     name: SCA - OWASP Dependency-Check
     runs-on: ubuntu-latest
@@ -62,7 +137,8 @@ jobs:
         with:
           project: 'BankDemo'
           path: 'BankDemo'
-          format: 'HTML'
+          format: 'SARIF'
+          out: 'reports'
           args: >
             --nvdApiKey ${{ secrets.NVD_API_KEY }}
 
@@ -71,6 +147,22 @@ jobs:
         with:
           name: dependency-check-report
           path: reports/
+
+      - name: Pošalji Dependency-Check izvještaj u DefectDojo
+        run: |
+          curl -X POST "${{ secrets.DEFECTDOJO_URL }}/api/v2/reimport-scan/" \
+            -H "Authorization: Token ${{ secrets.DEFECTDOJO_API_KEY }}" \
+            -F "scan_type=SARIF" \
+            -F "file=@reports/dependency-check-report.sarif" \
+            -F "product_name=BankDemo" \
+            -F "product_type_name=Diplomski rad" \
+            -F "engagement_name=CI/CD Pipeline Run #1" \
+            -F "test_title=OWASP Dependency-Check SCA" \
+            -F "auto_create_context=true" \
+            -F "active=true" \
+            -F "verified=false" \
+            -F "minimum_severity=Info"
+
   docker-build-trivy:
     name: Docker Build + Trivy scan
     runs-on: ubuntu-latest
@@ -110,6 +202,7 @@ jobs:
             -F "active=true" \
             -F "verified=false" \
             -F "minimum_severity=Info"
+
   dast-zap-sqlmap:
     name: DAST - OWASP ZAP + SQLMap
     runs-on: ubuntu-latest
@@ -142,6 +235,7 @@ jobs:
           echo "::error::Aplikacija se nije podigla na vrijeme."
           docker compose logs
           exit 1
+
       - name: Pokreni OWASP ZAP baseline sken
         continue-on-error: true
         uses: zaproxy/action-baseline@v0.12.0
@@ -149,6 +243,7 @@ jobs:
           target: 'http://localhost:8080'
           fail_action: false
           allow_issue_writing: false
+
       - name: Sačuvaj ZAP izvještaj kao artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -158,6 +253,22 @@ jobs:
             report_html.html
             report_json.json
             report_md.md
+
+      - name: Pošalji ZAP izvještaj u DefectDojo
+        if: always()
+        run: |
+          curl -X POST "${{ secrets.DEFECTDOJO_URL }}/api/v2/reimport-scan/" \
+            -H "Authorization: Token ${{ secrets.DEFECTDOJO_API_KEY }}" \
+            -F "scan_type=ZAP Scan" \
+            -F "file=@report_json.json" \
+            -F "product_name=BankDemo" \
+            -F "product_type_name=Diplomski rad" \
+            -F "engagement_name=CI/CD Pipeline Run #1" \
+            -F "test_title=OWASP ZAP DAST" \
+            -F "auto_create_context=true" \
+            -F "active=true" \
+            -F "verified=false" \
+            -F "minimum_severity=Info"
 
       - name: Pokreni SQLMap na search endpoint-u
         run: |
