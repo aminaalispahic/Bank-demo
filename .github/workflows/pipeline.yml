@@ -162,7 +162,44 @@ jobs:
             -F "active=true" \
             -F "verified=false" \
             -F "minimum_severity=Info"
+  iac-scan-checkov:
+    name: IaC Scan - Checkov
+    runs-on: ubuntu-latest
+    needs: secrets-scan
+    steps:
+      - name: Preuzmi kod
+        uses: actions/checkout@v4
 
+      - name: Pokreni Checkov
+        continue-on-error: true
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/tf" \
+            bridgecrew/checkov \
+            -d /tf \
+            --framework dockerfile \
+            -o sarif \
+            --output-file-path /tf
+
+      - name: Sačuvaj Checkov izvještaj
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkov-report
+          path: results.sarif
+
+      - name: Pošalji Checkov izvještaj u DefectDojo
+        run: |
+          curl -X POST "${{ secrets.DEFECTDOJO_URL }}/api/v2/reimport-scan/" \
+            -H "Authorization: Token ${{ secrets.DEFECTDOJO_API_KEY }}" \
+            -F "scan_type=SARIF" \
+            -F "file=@results.sarif" \
+            -F "product_name=BankDemo" \
+            -F "product_type_name=Diplomski rad" \
+            -F "engagement_name=CI/CD Pipeline Run #1" \
+            -F "test_title=Checkov IaC Scan" \
+            -F "auto_create_context=true" \
+            -F "active=true" \
+            -F "verified=false" \
+            -F "minimum_severity=Info"
   docker-build-trivy:
     name: Docker Build + Trivy scan
     runs-on: ubuntu-latest
@@ -230,36 +267,7 @@ jobs:
       - name: Potpiši Docker image (Cosign, keyless)
         run: |
           cosign sign --yes ghcr.io/${{ github.repository_owner }}/bankdemo-app:${{ github.sha }}
-      - name: Pokreni Checkov
-        continue-on-error: true
-        run: |
-          docker run --rm -v "${{ github.workspace }}:/tf" \
-            bridgecrew/checkov \
-            -d /tf \
-            --framework dockerfile docker_compose \
-            -o sarif \
-            --output-file-path /tf
-
-      - name: Sačuvaj Checkov izvještaj
-        uses: actions/upload-artifact@v4
-        with:
-          name: checkov-report
-          path: results.sarif
-
-      - name: Pošalji Checkov izvještaj u DefectDojo
-        run: |
-          curl -X POST "${{ secrets.DEFECTDOJO_URL }}/api/v2/reimport-scan/" \
-            -H "Authorization: Token ${{ secrets.DEFECTDOJO_API_KEY }}" \
-            -F "scan_type=SARIF" \
-            -F "file=@results.sarif" \
-            -F "product_name=BankDemo" \
-            -F "product_type_name=Diplomski rad" \
-            -F "engagement_name=CI/CD Pipeline Run #1" \
-            -F "test_title=Checkov IaC Scan" \
-            -F "auto_create_context=true" \
-            -F "active=true" \
-            -F "verified=false" \
-            -F "minimum_severity=Info"
+      
   dast-zap-sqlmap:
     name: DAST - OWASP ZAP + SQLMap
     runs-on: ubuntu-latest
