@@ -111,7 +111,10 @@ if (app.Environment.IsDevelopment())
 }
 
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseAuthentication();
 // ^ provjerava KO si (čita i validira JWT token) — MORA biti prije UseAuthorization
@@ -127,6 +130,9 @@ app.MapControllers();
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    // FAZA X: primijeni migracije prije bilo kakvog rada s bazom
+    context.Database.Migrate();
 
     bool adminExists = context.Users.Any(u => u.Role == BankDemo.Enums.UserRole.Admin);
 
