@@ -109,6 +109,7 @@ jobs:
           echo "JWT_KEY=${{ secrets.JWT_KEY }}" >> .env
           echo "ADMIN_USERNAME=${{ secrets.ADMIN_USERNAME }}" >> .env
           echo "ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}" >> .env
+          echo "ASPNETCORE_ENVIRONMENT=Development" >> .env
 
       - name: Pokreni aplikaciju i bazu
         run: docker compose up -d --build
@@ -118,12 +119,14 @@ jobs:
           for i in {1..30}; do
             if curl -sf http://localhost:8080/swagger/index.html; then
               echo "Aplikacija je spremna."
-              break
+              exit 0
             fi
             echo "Čekam aplikaciju... ($i/30)"
             sleep 2
           done
-
+          echo "::error::Aplikacija se nije podigla na vrijeme."
+          docker compose logs
+          exit 1
       - name: Pokreni OWASP ZAP baseline sken
         uses: zaproxy/action-baseline@v0.12.0
         with:
