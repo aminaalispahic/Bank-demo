@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?> <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.4.xsd">
+	<suppress>
+		<notes><![CDATA[ Lazno pozitivan nalaz: CPE mapiranje pogresno povezuje ovaj .NET paket sa samim PostgreSQL serverom, zbog poklapanja imena i verzije (10.0.3). Ranjivosti se odnose na PostgreSQL server, ne na .NET biblioteku. ]]></notes>
+		<packageUrl regex="true">^pkg:generic/Npgsql\.EntityFrameworkCore\.PostgreSQL@.*$</packageUrl>
+		<cpe>cpe:/a:postgresql:postgresql</cpe>
+		<cpe>cpe:/a:www-sql_project:www-sql</cpe>
+	</suppress>
+	<suppress>
+		<notes><![CDATA[ Lazno pozitivan nalaz: CPE mapiranje pogresno povezuje ovaj .NET paket sa istorijskim Visual Basic 6.0 / Visual FoxPro ranjivostima, zbog dijeljenog pojma "CodeDom" u nazivu. ]]></notes>
+		<packageUrl regex="true">^pkg:generic/System\.CodeDom@.*$</packageUrl>
+		<cpe>cpe:/a:microsoft:visual_basic</cpe>
+	</suppress>
+</suppressions>

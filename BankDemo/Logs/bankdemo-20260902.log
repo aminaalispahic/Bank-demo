@@ -1,0 +1,10 @@
+2026-09-02 18:50:03.558 +02:00 [INF] Executed DbCommand (17ms) [Parameters=[], CommandType='"Text"', CommandTimeout='30']
+SELECT EXISTS (
+    SELECT 1
+    FROM "Users" AS u
+    WHERE u."Role" = 2)
+2026-09-02 18:50:03.659 +02:00 [INF] User profile is available. Using 'C:\Users\korisnik\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2026-09-02 18:50:03.854 +02:00 [INF] Now listening on: https://localhost:7278
+2026-09-02 18:50:03.859 +02:00 [INF] Application started. Press Ctrl+C to shut down.
+2026-09-02 18:50:03.861 +02:00 [INF] Hosting environment: Development
+2026-09-02 18:50:03.862 +02:00 [INF] Content root path: C:\Users\korisnik\source\repos\Bank-demo\BankDemo
