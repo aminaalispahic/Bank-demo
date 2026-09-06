@@ -369,7 +369,15 @@ jobs:
             --certificate-identity-regexp "https://github.com/${{ github.repository }}/" \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
 
-      - name: Simulacija deployment koraka
+      - name: Instaliraj Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy na Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway redeploy --yes
+
+      - name: Health check
         run: |
-          echo "Image ghcr.io/${{ github.repository_owner }}/bankdemo-app:${{ github.sha }} je verifikovan."
-          echo "U produkcijskom okruženju, ovaj korak bi izvršio stvarni deployment (npr. kubectl apply, docker compose na serveru, itd.)."
+          sleep 20
+          curl -sf https://bankdemo-app-production.up.railway.app/swagger/index.html && echo "✅ Aplikacija je živa i odgovara!" || (echo "❌ Health check neuspješan" && exit 1)

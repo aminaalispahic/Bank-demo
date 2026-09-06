@@ -104,17 +104,17 @@ app.Use(async (context, next) =>
 });
 
 app.UseRateLimiter();
-if (app.Environment.IsDevelopment())
-{
+//if (app.Environment.IsDevelopment())
+//{
     app.UseSwagger();
     app.UseSwaggerUI();
-}
+//}
 
 
-if (!app.Environment.IsDevelopment())
-{
-    app.UseHttpsRedirection();
-}
+//if (!app.Environment.IsDevelopment())
+//{
+    //app.UseHttpsRedirection();
+//}
 
 app.UseAuthentication();
 // ^ provjerava KO si (čita i validira JWT token) — MORA biti prije UseAuthorization
