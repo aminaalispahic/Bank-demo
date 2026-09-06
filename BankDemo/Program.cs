@@ -118,6 +118,8 @@ using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
+    context.Database.Migrate();
+
     bool adminExists = context.Users.Any(u => u.Role == BankDemo.Enums.UserRole.Admin);
 
     if (!adminExists)
