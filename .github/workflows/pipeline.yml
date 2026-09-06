@@ -21,6 +21,7 @@ jobs:
           docker run --rm -v "${{ github.workspace }}:/repo" \
             zricethezav/gitleaks:latest detect \
             --source /repo \
+            --no-git \
             --config /repo/.gitleaks.toml \
             --report-format sarif \
             --report-path /repo/gitleaks-results.sarif
