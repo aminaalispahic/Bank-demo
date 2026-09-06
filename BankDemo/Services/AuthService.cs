@@ -9,16 +9,17 @@ namespace BankDemo.Services
     {
         private readonly IUserRepository _userRepository;
         private readonly ITokenService _tokenService;
+        
         // VULN: Hardkodirana tajna direktno u kodu
-   
+        private const string BackupAdminApiKey = "sk_live_51HqA8xJ2eZvKYlo3nQpR9tUvW7mN4bXc";
 
-        private readonly string? _backupAdminApiKey;
+       
 
         public AuthService(IUserRepository userRepository, ITokenService tokenService, IConfiguration configuration)
         {
             _userRepository = userRepository;
             _tokenService = tokenService;
-            _backupAdminApiKey = configuration["Stripe:ApiKey"];
+           
         }
 
         public async Task<RegisterResult> RegisterAsync(RegisterRequestDto request)
