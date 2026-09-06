@@ -375,7 +375,7 @@ jobs:
       - name: Deploy na Railway
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: railway redeploy --yes
+        run: railway redeploy --service bankdemo-app --yes
 
       - name: Health check
         run: |
