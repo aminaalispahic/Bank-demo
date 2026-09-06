@@ -1,0 +1,383 @@
+name: DevSecOps Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  secrets-scan:
+    name: GitLeaks - Detekcija tajni
+    runs-on: ubuntu-latest
+    steps:
+      - name: Preuzmi kod
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Pokreni GitLeaks
+        continue-on-error: true
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/repo" \
+            zricethezav/gitleaks:latest detect \
+            --source /repo \
+            --no-git \
+            --config /repo/.gitleaks.toml \
+            --report-format sarif \
+            --report-path /repo/gitleaks-results.sarif
+
+      - name: Sačuvaj GitLeaks izvještaj
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: gitleaks-results.sarif
+
+      - name: Pošalji GitLeaks izvještaj u DefectDojo
+        run: |
+          curl -X POST "${{ secrets.DEFECTDOJO_URL }}/api/v2/reimport-scan/" \
+            -H "Authorization: Token ${{ secrets.DEFECTDOJO_API_KEY }}" \
+            -F "scan_type=SARIF" \
+            -F "file=@gitleaks-results.sarif" \
+            -F "product_name=BankDemo" \
+            -F "product_type_name=Diplomski rad" \
+            -F "engagement_name=CI/CD Pipeline Run #1" \
+            -F "test_title=GitLeaks Secrets Scan" \
+            -F "auto_create_context=true" \
+            -F "active=true" \
+            -F "verified=false" \
+            -F "minimum_severity=Info"
+
+  sast-semgrep:
+    name: SAST - Semgrep
+    runs-on: ubuntu-latest
+    needs: secrets-scan
+    steps:
+      - name: Preuzmi kod
+        uses: actions/checkout@v4
+
+      - name: Pokreni Semgrep
+        continue-on-error: true
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/src" \
+            semgrep/semgrep semgrep scan \
+            --config auto \
+            --sarif \
+            --output=/src/semgrep-results.sarif \
+            /src
+
+      - name: Sačuvaj Semgrep izvještaj
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-report
+          path: semgrep-results.sarif
+
+      - name: Pošalji Semgrep izvještaj u DefectDojo
+        run: |
+          curl -X POST "${{ secrets.DEFECTDOJO_URL }}/api/v2/reimport-scan/" \
+            -H "Authorization: Token ${{ secrets.DEFECTDOJO_API_KEY }}" \
+            -F "scan_type=SARIF" \
+            -F "file=@semgrep-results.sarif" \
+            -F "product_name=BankDemo" \
+            -F "product_type_name=Diplomski rad" \
+            -F "engagement_name=CI/CD Pipeline Run #1" \
+            -F "test_title=Semgrep SAST Scan" \
+            -F "auto_create_context=true" \
+            -F "active=true" \
+            -F "verified=false" \
+            -F "minimum_severity=Info"
+
+  sast-security-code-scan:
+    name: SAST - Security Code Scan
+    runs-on: ubuntu-latest
+    needs: secrets-scan
+    steps:
+      - name: Preuzmi kod
+        uses: actions/checkout@v4
+
+      - name: Postavi .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build sa Security Code Scan analizom
+        run: |
+          cd BankDemo
+          dotnet build --no-incremental /p:ErrorLog=../scs-results.sarif,version=2.1
+
+      - name: Sačuvaj Security Code Scan izvještaj
+        uses: actions/upload-artifact@v4
+        with:
+          name: scs-report
+          path: scs-results.sarif
+
+      - name: Pošalji Security Code Scan izvještaj u DefectDojo
+        run: |
+          curl -X POST "${{ secrets.DEFECTDOJO_URL }}/api/v2/reimport-scan/" \
+            -H "Authorization: Token ${{ secrets.DEFECTDOJO_API_KEY }}" \
+            -F "scan_type=SARIF" \
+            -F "file=@scs-results.sarif" \
+            -F "product_name=BankDemo" \
+            -F "product_type_name=Diplomski rad" \
+            -F "engagement_name=CI/CD Pipeline Run #1" \
+            -F "test_title=Security Code Scan SAST" \
+            -F "auto_create_context=true" \
+            -F "active=true" \
+            -F "verified=false" \
+            -F "minimum_severity=Info"
+
+  sca-dependency-check:
+    name: SCA - OWASP Dependency-Check
+    runs-on: ubuntu-latest
+    needs: secrets-scan
+    steps:
+      - name: Preuzmi kod
+        uses: actions/checkout@v4
+
+      - name: Pokreni Dependency-Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'BankDemo'
+          path: 'BankDemo'
+          format: 'SARIF'
+          out: 'reports'
+          args: >
+            --nvdApiKey ${{ secrets.NVD_API_KEY }}
+
+      - name: Sačuvaj izvještaj kao artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: reports/
+
+      - name: Pošalji Dependency-Check izvještaj u DefectDojo
+        run: |
+          curl -X POST "${{ secrets.DEFECTDOJO_URL }}/api/v2/reimport-scan/" \
+            -H "Authorization: Token ${{ secrets.DEFECTDOJO_API_KEY }}" \
+            -F "scan_type=SARIF" \
+            -F "file=@reports/dependency-check-report.sarif" \
+            -F "product_name=BankDemo" \
+            -F "product_type_name=Diplomski rad" \
+            -F "engagement_name=CI/CD Pipeline Run #1" \
+            -F "test_title=OWASP Dependency-Check SCA" \
+            -F "auto_create_context=true" \
+            -F "active=true" \
+            -F "verified=false" \
+            -F "minimum_severity=Info"
+  iac-scan-checkov:
+    name: IaC Scan - Checkov
+    runs-on: ubuntu-latest
+    needs: secrets-scan
+    steps:
+      - name: Preuzmi kod
+        uses: actions/checkout@v4
+
+      - name: Pokreni Checkov
+        continue-on-error: true
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/tf" \
+            bridgecrew/checkov \
+            -d /tf \
+            --framework dockerfile \
+            -o sarif \
+            --output-file-path /tf
+     
+
+      - name: Sačuvaj Checkov izvještaj
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkov-report
+          path: results_sarif.sarif
+
+      - name: Pošalji Checkov izvještaj u DefectDojo
+        run: |
+          curl -X POST "${{ secrets.DEFECTDOJO_URL }}/api/v2/reimport-scan/" \
+            -H "Authorization: Token ${{ secrets.DEFECTDOJO_API_KEY }}" \
+            -F "scan_type=SARIF" \
+            -F "file=@results_sarif.sarif" \
+            -F "product_name=BankDemo" \
+            -F "product_type_name=Diplomski rad" \
+            -F "engagement_name=CI/CD Pipeline Run #1" \
+            -F "test_title=Checkov IaC Scan" \
+            -F "auto_create_context=true" \
+            -F "active=true" \
+            -F "verified=false" \
+            -F "minimum_severity=Info"
+  docker-build-trivy:
+    name: Docker Build + Trivy scan
+    runs-on: ubuntu-latest
+    needs: [secrets-scan, sast-semgrep, sast-security-code-scan, sca-dependency-check]
+    permissions:
+      contents: read
+      id-token: write   
+      packages: write
+    steps:
+      - name: Preuzmi kod
+        uses: actions/checkout@v4
+
+      - name: Izgradi Docker image
+        run: docker build -t bankdemo-app:${{ github.sha }} ./BankDemo
+
+      - name: Pokreni Trivy sken
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'bankdemo-app:${{ github.sha }}'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Sačuvaj Trivy izvještaj
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-report
+          path: trivy-results.sarif
+
+      - name: Pošalji Trivy izvještaj u DefectDojo
+        run: |
+          curl -X POST "${{ secrets.DEFECTDOJO_URL }}/api/v2/reimport-scan/" \
+            -H "Authorization: Token ${{ secrets.DEFECTDOJO_API_KEY }}" \
+            -F "scan_type=SARIF" \
+            -F "file=@trivy-results.sarif" \
+            -F "product_name=BankDemo" \
+            -F "product_type_name=Diplomski rad" \
+            -F "engagement_name=CI/CD Pipeline Run #1" \
+            -F "test_title=Trivy Container Scan" \
+            -F "auto_create_context=true" \
+            -F "active=true" \
+            -F "verified=false" \
+            -F "minimum_severity=Info"
+      - name: Generiši SBOM (CycloneDX format)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'bankdemo-app:${{ github.sha }}'
+          format: 'cyclonedx'
+          output: 'sbom.cyclonedx.json'
+
+      - name: Sačuvaj SBOM kao artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-report
+          path: sbom.cyclonedx.json
+      - name: Instaliraj Cosign
+        uses: sigstore/cosign-installer@v3
+
+   
+      - name: Gurni image u GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker tag bankdemo-app:${{ github.sha }} ghcr.io/${{ github.repository_owner }}/bankdemo-app:${{ github.sha }}
+          docker tag bankdemo-app:${{ github.sha }} ghcr.io/${{ github.repository_owner }}/bankdemo-app:latest
+          docker push ghcr.io/${{ github.repository_owner }}/bankdemo-app:${{ github.sha }}
+          docker push ghcr.io/${{ github.repository_owner }}/bankdemo-app:latest
+
+      - name: Potpiši Docker image (Cosign, keyless)
+        run: |
+          cosign sign --yes ghcr.io/${{ github.repository_owner }}/bankdemo-app:${{ github.sha }}
+      
+  dast-zap-sqlmap:
+    name: DAST - OWASP ZAP + SQLMap
+    runs-on: ubuntu-latest
+    needs: docker-build-trivy
+    steps:
+      - name: Preuzmi kod
+        uses: actions/checkout@v4
+
+      - name: Napravi .env fajl za pipeline
+        run: |
+          echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
+          echo "JWT_KEY=${{ secrets.JWT_KEY }}" >> .env
+          echo "ADMIN_USERNAME=${{ secrets.ADMIN_USERNAME }}" >> .env
+          echo "ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}" >> .env
+          echo "ASPNETCORE_ENVIRONMENT=Development" >> .env
+
+      - name: Pokreni aplikaciju i bazu
+        run: docker compose up -d --build
+
+      - name: Sačekaj da aplikacija bude spremna
+        run: |
+          for i in {1..30}; do
+            if curl -sf http://localhost:8080/swagger/index.html; then
+              echo "Aplikacija je spremna."
+              exit 0
+            fi
+            echo "Čekam aplikaciju... ($i/30)"
+            sleep 2
+          done
+          echo "::error::Aplikacija se nije podigla na vrijeme."
+          docker compose logs
+          exit 1
+
+      - name: Pokreni OWASP ZAP baseline sken
+        continue-on-error: true
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: 'http://localhost:8080'
+          fail_action: false
+          allow_issue_writing: false
+
+      - name: Sačuvaj ZAP izvještaj kao artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-report
+          path: |
+            report_html.html
+            report_json.json
+            report_md.md
+
+      - name: Pošalji ZAP izvještaj u DefectDojo
+        if: always()
+        run: |
+          curl -X POST "${{ secrets.DEFECTDOJO_URL }}/api/v2/reimport-scan/" \
+            -H "Authorization: Token ${{ secrets.DEFECTDOJO_API_KEY }}" \
+            -F "scan_type=ZAP Scan" \
+            -F "file=@report_json.json" \
+            -F "product_name=BankDemo" \
+            -F "product_type_name=Diplomski rad" \
+            -F "engagement_name=CI/CD Pipeline Run #1" \
+            -F "test_title=OWASP ZAP DAST" \
+            -F "auto_create_context=true" \
+            -F "active=true" \
+            -F "verified=false" \
+            -F "minimum_severity=Info"
+
+      - name: Pokreni SQLMap na search endpoint-u
+        run: |
+          docker run --rm --network host \
+            secsi/sqlmap \
+            -u "http://localhost:8080/api/accounts/search?accountNumber=test" \
+            --batch --level=2 --risk=2 \
+            --output-dir=/tmp/sqlmap-results
+
+      - name: Zaustavi aplikaciju
+        if: always()
+        run: docker compose down
+
+
+  deploy-production:
+    name: Deploy - Produkcijsko odobrenje
+    runs-on: ubuntu-latest
+    needs: dast-zap-sqlmap
+    environment:
+      name: production
+    steps:
+      - name: Instaliraj Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Verifikuj potpis Docker image-a prije deploy-a
+        run: |
+          cosign verify ghcr.io/${{ github.repository_owner }}/bankdemo-app:${{ github.sha }} \
+            --certificate-identity-regexp "https://github.com/${{ github.repository }}/" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+
+      - name: Instaliraj Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy na Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway redeploy --service bankdemo-app --yes
+
+      - name: Health check
+        run: |
+          sleep 20
+          curl -sf https://bankdemo-app-production.up.railway.app/swagger/index.html && echo "✅ Aplikacija je živa i odgovara!" || (echo "❌ Health check neuspješan" && exit 1)
