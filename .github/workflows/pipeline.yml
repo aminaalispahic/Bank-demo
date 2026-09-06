@@ -179,21 +179,20 @@ jobs:
             --framework dockerfile \
             -o sarif \
             --output-file-path /tf
-      - name: Debug - prikaži generisane fajlove
-        run: ls -la ${{ github.workspace }}
+     
 
       - name: Sačuvaj Checkov izvještaj
         uses: actions/upload-artifact@v4
         with:
           name: checkov-report
-          path: results.sarif
+          path: results_sarif.sarif
 
       - name: Pošalji Checkov izvještaj u DefectDojo
         run: |
           curl -X POST "${{ secrets.DEFECTDOJO_URL }}/api/v2/reimport-scan/" \
             -H "Authorization: Token ${{ secrets.DEFECTDOJO_API_KEY }}" \
             -F "scan_type=SARIF" \
-            -F "file=@results.sarif" \
+            -F "file=@results_sarif.sarif" \
             -F "product_name=BankDemo" \
             -F "product_type_name=Diplomski rad" \
             -F "engagement_name=CI/CD Pipeline Run #1" \
