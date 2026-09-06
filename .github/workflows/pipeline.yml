@@ -339,12 +339,21 @@ jobs:
             -F "active=true" \
             -F "verified=false" \
             -F "minimum_severity=Info"
+      - name: Dobavi JWT token za SQLMap
+        id: get_token
+        run: |
+          TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"username":"${{ secrets.ADMIN_USERNAME }}","password":"${{ secrets.ADMIN_PASSWORD }}"}' \
+            | jq -r '.token')
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT
 
       - name: Pokreni SQLMap na search endpoint-u
         run: |
           docker run --rm --network host \
             secsi/sqlmap \
             -u "http://localhost:8080/api/accounts/search?accountNumber=test" \
+            --headers="Authorization: Bearer ${{ steps.get_token.outputs.token }}" \
             --batch --level=2 --risk=2 \
             --output-dir=/tmp/sqlmap-results
 
