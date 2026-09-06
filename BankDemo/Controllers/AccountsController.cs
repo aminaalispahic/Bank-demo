@@ -46,7 +46,7 @@ namespace BankDemo.Controllers
             var idClaim = User.FindFirst(ClaimTypes.NameIdentifier);
             return int.Parse(idClaim!.Value);
         }
-
+        //Smiju samo referent i admin kreirati racun
         [HttpPost]
         [Authorize(Roles = "Referent,Admin")]
         public async Task<IActionResult> CreateAccount(CreateAccountRequestDto request)
