@@ -12,16 +12,9 @@ RUN dotnet publish -c Release -o /app/publish
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
-# Kreiraj ne-root korisnika i grupu
-RUN groupadd -r -g 1001 appgroup && useradd -r -u 1001 -g appgroup appuser
-
+# VULN: Uklonjeno kreiranje ne-root korisnika i USER instrukcija — kontejner se izvršava kao root
 COPY --from=build /app/publish .
-
-# Postavi vlasništvo fajlova na novog korisnika
-RUN chown -R appuser:appgroup /app
-
-# Promijeni aktivnog korisnika sa root na appuser
-USER 1001 
+ENV DB_PASSWORD="test-password-DO-NOT-USE-IN-PRODUCTION"
 
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "BankDemo.dll"]

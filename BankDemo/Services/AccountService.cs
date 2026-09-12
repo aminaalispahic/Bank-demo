@@ -31,7 +31,7 @@ namespace BankDemo.Services
         {
             var fromAccount = await _accountRepository.GetByIdAsync(fromAccountId);
 
-            if (fromAccount == null || fromAccount.UserId != userId)
+            if (fromAccount == null)
             {
                 return new TransferResult { Success = false, ErrorMessage = "Nemate pristup ovom računu." };
             }
