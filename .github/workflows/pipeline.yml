@@ -86,7 +86,7 @@ jobs:
             -F "verified=false" \
             -F "minimum_severity=Info"
 
-    sast-security-code-scan:
+  sast-security-code-scan:
     name: SAST - Security Code Scan
     runs-on: ubuntu-latest
     needs: secrets-scan
