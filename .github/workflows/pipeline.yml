@@ -38,11 +38,7 @@ jobs:
             -H "Authorization: Token ${{ secrets.DEFECTDOJO_API_KEY }}" \
             -F "scan_type=SARIF" \
             -F "file=@gitleaks-results.sarif" \
-            -F "product_name=BankDemo" \
-            -F "product_type_name=Diplomski rad" \
-            -F "engagement_name=CI/CD Pipeline Run #1" \
-            -F "test_title=GitLeaks Secrets Scan" \
-            -F "auto_create_context=true" \
+            -F "test=${{ secrets.DD_TEST_GITLEAKS }}" \
             -F "active=true" \
             -F "verified=false" \
             -F "minimum_severity=Info"
@@ -77,11 +73,7 @@ jobs:
             -H "Authorization: Token ${{ secrets.DEFECTDOJO_API_KEY }}" \
             -F "scan_type=SARIF" \
             -F "file=@semgrep-results.sarif" \
-            -F "product_name=BankDemo" \
-            -F "product_type_name=Diplomski rad" \
-            -F "engagement_name=CI/CD Pipeline Run #1" \
-            -F "test_title=Semgrep SAST Scan" \
-            -F "auto_create_context=true" \
+            -F "test=${{ secrets.DD_TEST_SEMGREP }}" \
             -F "active=true" \
             -F "verified=false" \
             -F "minimum_severity=Info"
@@ -121,11 +113,7 @@ jobs:
             -H "Authorization: Token ${{ secrets.DEFECTDOJO_API_KEY }}" \
             -F "scan_type=SARIF" \
             -F "file=@scs-results.sarif" \
-            -F "product_name=BankDemo" \
-            -F "product_type_name=Diplomski rad" \
-            -F "engagement_name=CI/CD Pipeline Run #1" \
-            -F "test_title=Security Code Scan SAST" \
-            -F "auto_create_context=true" \
+            -F "test=${{ secrets.DD_TEST_SCS }}" \
             -F "active=true" \
             -F "verified=false" \
             -F "minimum_severity=Info"
@@ -160,11 +148,7 @@ jobs:
             -H "Authorization: Token ${{ secrets.DEFECTDOJO_API_KEY }}" \
             -F "scan_type=SARIF" \
             -F "file=@reports/dependency-check-report.sarif" \
-            -F "product_name=BankDemo" \
-            -F "product_type_name=Diplomski rad" \
-            -F "engagement_name=CI/CD Pipeline Run #1" \
-            -F "test_title=OWASP Dependency-Check SCA" \
-            -F "auto_create_context=true" \
+            -F "test=${{ secrets.DD_TEST_DEPCHECK }}" \
             -F "active=true" \
             -F "verified=false" \
             -F "minimum_severity=Info"
@@ -199,11 +183,7 @@ jobs:
             -H "Authorization: Token ${{ secrets.DEFECTDOJO_API_KEY }}" \
             -F "scan_type=SARIF" \
             -F "file=@results_sarif.sarif" \
-            -F "product_name=BankDemo" \
-            -F "product_type_name=Diplomski rad" \
-            -F "engagement_name=CI/CD Pipeline Run #1" \
-            -F "test_title=Checkov IaC Scan" \
-            -F "auto_create_context=true" \
+            -F "test=${{ secrets.DD_TEST_CHECKOV }}" \
             -F "active=true" \
             -F "verified=false" \
             -F "minimum_severity=Info"
@@ -242,11 +222,7 @@ jobs:
             -H "Authorization: Token ${{ secrets.DEFECTDOJO_API_KEY }}" \
             -F "scan_type=SARIF" \
             -F "file=@trivy-results.sarif" \
-            -F "product_name=BankDemo" \
-            -F "product_type_name=Diplomski rad" \
-            -F "engagement_name=CI/CD Pipeline Run #1" \
-            -F "test_title=Trivy Container Scan" \
-            -F "auto_create_context=true" \
+            -F "test=${{ secrets.DD_TEST_TRIVY }}" \
             -F "active=true" \
             -F "verified=false" \
             -F "minimum_severity=Info"
@@ -337,11 +313,7 @@ jobs:
             -H "Authorization: Token ${{ secrets.DEFECTDOJO_API_KEY }}" \
             -F "scan_type=ZAP Scan" \
             -F "file=@report_json.json" \
-            -F "product_name=BankDemo" \
-            -F "product_type_name=Diplomski rad" \
-            -F "engagement_name=CI/CD Pipeline Run #1" \
-            -F "test_title=OWASP ZAP DAST" \
-            -F "auto_create_context=true" \
+            -F "test=${{ secrets.DD_TEST_ZAP }}" \
             -F "active=true" \
             -F "verified=false" \
             -F "minimum_severity=Info"
