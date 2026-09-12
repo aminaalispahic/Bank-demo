@@ -106,7 +106,7 @@ jobs:
 
       - name: Popravi SARIF format za DefectDojo kompatibilnost
         run: |
-          jq '.runs[].tool.driver = (.runs[].tool.driver // {"name": "SecurityCodeScan", "informationUri": "https://security-code-scan.github.io/"})' scs-results.sarif > scs-results-fixed.sarif
+          jq '(.runs[].tool.driver) |= (. // {"name": "SecurityCodeScan", "informationUri": "https://security-code-scan.github.io/"}) | (.runs[].results[].message) |= (if type == "string" then {"text": .} else . end)' scs-results.sarif > scs-results-fixed.sarif
           mv scs-results-fixed.sarif scs-results.sarif
 
       - name: Sačuvaj Security Code Scan izvještaj
