@@ -86,7 +86,7 @@ jobs:
             -F "verified=false" \
             -F "minimum_severity=Info"
 
-  sast-security-code-scan:
+    sast-security-code-scan:
     name: SAST - Security Code Scan
     runs-on: ubuntu-latest
     needs: secrets-scan
@@ -103,6 +103,11 @@ jobs:
         run: |
           cd BankDemo
           dotnet build --no-incremental /p:ErrorLog=../scs-results.sarif,version=2.1
+
+      - name: Popravi SARIF format za DefectDojo kompatibilnost
+        run: |
+          jq '.runs[].tool.driver = (.runs[].tool.driver // {"name": "SecurityCodeScan", "informationUri": "https://security-code-scan.github.io/"})' scs-results.sarif > scs-results-fixed.sarif
+          mv scs-results-fixed.sarif scs-results.sarif
 
       - name: Sačuvaj Security Code Scan izvještaj
         uses: actions/upload-artifact@v4
